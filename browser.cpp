@@ -21,9 +21,9 @@
 #include "lfapp/css.h"
 #include "lfapp/flow.h"
 #include "lfapp/gui.h"
+#include "lfapp/browser.h"
 
-using namespace LFL;
-
+namespace LFL {
 DEFINE_string(url, "http://news.google.com/", "Url to open");
 DEFINE_int(width, 1040, "browser width");
 DEFINE_int(height, 768, "browser height");
@@ -41,7 +41,7 @@ struct JavaScriptConsole : public Console {
 };
 
 struct MyBrowserWindow : public GUI {
-    Font *menu_atlas1, *menu_atlas2;
+    Font *menu_atlas;
     Box win, topbar, addressbar;
     Widget::Button back, forward, refresh;
     TextGUI address_box;
@@ -50,11 +50,10 @@ struct MyBrowserWindow : public GUI {
     BrowserInterface *webkit_browser=0, *berkelium_browser=0;
 
     MyBrowserWindow(LFL::Window *W) : GUI(W),
-    menu_atlas1(Fonts::Get("MenuAtlas1", "", 0, Color::black)),
-    menu_atlas2(Fonts::Get("MenuAtlas2", "", 0, Color::black)),
-    back   (this, &menu_atlas1->FindGlyph(20)->tex, 0, "", MouseController::CB([&](){ browser->BackButton(); })),
-    forward(this, &menu_atlas1->FindGlyph(22)->tex, 0, "", MouseController::CB([&](){ browser->ForwardButton(); })),
-    refresh(this, &menu_atlas2->FindGlyph(50)->tex, 0, "", MouseController::CB([&](){ browser->RefreshButton(); })),
+    menu_atlas(Fonts::Get("MenuAtlas", "", 0, Color::black, Color::clear, 0, 0)),
+    back   (this, &menu_atlas->FindGlyph(6)->tex, 0, "", MouseController::CB([&](){ browser->BackButton(); })),
+    forward(this, &menu_atlas->FindGlyph(7)->tex, 0, "", MouseController::CB([&](){ browser->ForwardButton(); })),
+    refresh(this, &menu_atlas->FindGlyph(8)->tex, 0, "", MouseController::CB([&](){ browser->RefreshButton(); })),
     address_box(W, Fonts::Get(FLAGS_default_font, "", 12, Color::black)) {
         address_box.SetToggleKey(0, Toggler::OneShot);
         address_box.cmd_prefix.clear();
@@ -106,7 +105,7 @@ struct MyBrowserWindow : public GUI {
         screen->gd->EnableLayering();
         if (!address_box.active) {
             string url = browser->GetURL();
-            if (url != address_box.Text()) address_box.cmd_line.AssignText(url);
+            if (url != String::ToUTF8(address_box.Text16())) address_box.cmd_line.AssignText(url);
         }
         address_box.Draw(addressbar);
         browser->Draw(&win);
@@ -140,6 +139,9 @@ void MyWindowDefaults(LFL::Window *W) {
     if (app->initialized) W->user1 = new MyBrowserWindow(W);
 }
 
+}; // namespace LFL
+using namespace LFL;
+
 extern "C" int main(int argc, const char *argv[]) {
     
     app->logfilename = StrCat(LFAppDownloadDir(), "browser.txt");
@@ -150,11 +152,15 @@ extern "C" int main(int argc, const char *argv[]) {
     FLAGS_font_engine = "freetype";
     FLAGS_default_font = "DejaVuSans.ttf";
     FLAGS_default_font_family = "sans-serif";
+    FLAGS_default_font_flag = 0;
     FLAGS_atlas_font_sizes = "32";
 
     if (app->Create(argc, argv, __FILE__)) { app->Free(); return -1; }
-    screen->width = FLAGS_width; screen->height = FLAGS_height;
+    screen->width = FLAGS_width;
+    screen->height = FLAGS_height;
     if (app->Init()) { app->Free(); return -1; }
+    app->scheduler.AddWaitForeverKeyboard();
+    app->scheduler.AddWaitForeverMouse();
 
     vector<string> atlas_font_size;
     Split(FLAGS_atlas_font_sizes, iscomma, &atlas_font_size);
@@ -172,7 +178,7 @@ extern "C" int main(int argc, const char *argv[]) {
         freetype->Init(FontDesc("DejaVuSerifCondensed-Bold.ttf", "fantasy",    size, Color::white, Color::clear, 0));
     }
 
-    binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ screen->console->Toggle(); }))));
+    binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ app->shell.console(vector<string>()); }))));
     binds->Add(Bind('7', Key::Modifier::Cmd, Bind::CB(bind(&MyJavaScriptConsole))));
 
     screen->user1 = new MyBrowserWindow(screen);
