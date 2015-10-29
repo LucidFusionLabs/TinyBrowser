@@ -61,14 +61,14 @@ struct LayoutTests {
     }
 } *layout_tests;
 
-int Frame(LFL::Window *W, unsigned clicks, unsigned mic_samples, bool cam_sample, int flag) {
+int Frame(LFL::Window *W, unsigned clicks, int flag) {
     screen->gd->DrawMode(DrawMode::_2D);
     Box rootwin = screen->Box();
     bool load_done = browser->doc.parser->requested == browser->doc.parser->completed;
     if (!load_done) return -1;
     else {
         if (browser->doc.parser->requested) {
-            browser->Draw(&rootwin);
+            browser->Draw(rootwin);
             app->shell.screenshot(vector<string>(1, FLAGS_render_png));
             if (layout_tests) {
                 INFO(layout_tests->CurrentName());
@@ -100,8 +100,8 @@ extern "C" int main(int argc, const char *argv[]) {
     if (app->Init()) { app->Free(); return -1; }
 
     screen->gd->ClearColor(Color::white);
-    browser = new Browser(screen, screen->Box());
-    browser->InitLayers();
+    browser = new Browser(new GUI(), screen->Box());
+    browser->InitLayers(new Layers());
     browser->render_log = &render_log;
     if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(FLAGS_layout_tests);
     else if (!FLAGS_render_url.empty()) browser->Open(FLAGS_render_url);
