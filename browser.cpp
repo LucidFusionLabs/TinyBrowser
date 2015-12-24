@@ -23,8 +23,8 @@
 #include "lfapp/gui.h"
 #include "lfapp/ipc.h"
 #include "lfapp/browser.h"
-#include "crawler/html.h"
-#include "crawler/document.h"
+#include "web/html.h"
+#include "web/document.h"
 
 namespace LFL {
 DEFINE_string(url, "http://news.google.com/", "Url to open");
@@ -86,7 +86,7 @@ struct MyBrowserWindow : public GUI {
 #endif
     if (!browser) {
       browser = lfl_browser = new Browser(this, win);
-      lfl_browser->doc.js_console = new JavaScriptConsole(screen, lfl_browser);
+      lfl_browser->doc.js_console = unique_ptr<Console>(new JavaScriptConsole(screen, lfl_browser));
       lfl_browser->doc.js_console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
       if (app->render_process) lfl_browser->InitLayers(new LayersIPCServer());
       else                     lfl_browser->InitLayers(new Layers());
