@@ -46,6 +46,7 @@ extern "C" void LFAppCreateCB() {
   Fonts::DefaultFontEngine()->SetDefault();
   Singleton<Fonts>::Get()->default_font_engine = Singleton<IPCClientFontEngine>::Get();
   FLAGS_font_engine = "ipc_client";
+  FLAGS_max_rlimit_open_files = 1;
 }
 
 extern "C" int main(int argc, const char *argv[]) {
