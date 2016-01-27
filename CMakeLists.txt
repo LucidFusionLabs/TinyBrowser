@@ -1,6 +1,7 @@
 # $Id: CMakeLists.txt 1320 2014-10-26 08:12:52Z justin $
 
 lfl_clear_projects()
+set(LFL_LFLINPUT 1)
 set(LFL_HEADLESS 1)
 set(LFL_FLATBUFFERS 1)
 set(LFL_FREETYPE 1)

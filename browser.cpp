@@ -57,14 +57,13 @@ struct MyBrowserWindow : public GUI {
   BrowserInterface *qt_browser=0, *berkelium_browser=0;
   BrowserController *controller=0;
 
-  MyBrowserWindow(LFL::Window *W) : GUI(W),
-  menu_atlas(Fonts::Get("MenuAtlas", "", 0, Color::white, Color::clear, 0, 0)),
+  MyBrowserWindow(LFL::Window *W) : GUI(W), menu_atlas(Fonts::Get("MenuAtlas", "", 0, Color::white, Color::clear, 0)),
   back   (this, &menu_atlas->FindGlyph(6)->tex, 0, "", MouseController::CB([&](){ browser->BackButton(); })),
   forward(this, &menu_atlas->FindGlyph(7)->tex, 0, "", MouseController::CB([&](){ browser->ForwardButton(); })),
   refresh(this, &menu_atlas->FindGlyph(8)->tex, 0, "", MouseController::CB([&](){ browser->RefreshButton(); })),
   address_box(W, Fonts::Get(FLAGS_default_font, "", 12, Color::black, Color::white)) {
     address_box.bg_color = &Color::white;
-    address_box.SetToggleKey(0, Toggler::OneShot);
+    address_box.SetToggleKey(0, true);
     address_box.cmd_prefix.clear();
     address_box.deactivate_on_enter = true;
     address_box.runcb = [=](const string &t){ Open(t); };
@@ -108,11 +107,13 @@ struct MyBrowserWindow : public GUI {
   }
 
   void Layout() {
+    Reset();
     InitLayout();
     addressbar = topbar;
     MinusPlus(&addressbar.w, &addressbar.x, 16*3 + 20);
+    child_box.PushBack(topbar, Drawable::Attr((Font*)0, &Color::grey70), Singleton<BoxFilled>::Get());
 
-    Flow flow(&box, 0, Reset());
+    Flow flow(&box, 0, &child_box);
     flow.cur_attr.font = menu_atlas;
     back   .Layout(&flow, point(16, 16)); flow.p.x += 5;
     forward.Layout(&flow, point(16, 16)); flow.p.x += 5;
@@ -122,8 +123,6 @@ struct MyBrowserWindow : public GUI {
   }
 
   void Draw() {
-    screen->gd->FillColor(Color::grey70);
-    // topbar.Draw();
     GUI::Draw();
     browser->Draw(box);
     address_box.Draw(addressbar + box.TopLeft());
@@ -147,7 +146,7 @@ int Frame(LFL::Window *W, unsigned clicks, int flag) {
 
 void MyJavaScriptConsole() {
   MyBrowserWindow *tw = (MyBrowserWindow*)screen->user1;
-  if (tw->lfl_browser && tw->lfl_browser->doc.js_console) tw->lfl_browser->doc.js_console->Toggle();
+  if (tw->lfl_browser && tw->lfl_browser->doc.js_console) tw->lfl_browser->doc.js_console->ToggleActive();
 }
 
 void MyWindowInitCB(LFL::Window *W) {
@@ -167,14 +166,13 @@ extern "C" void LFAppCreateCB() {
   app->logfilename = StrCat(LFAppDownloadDir(), "browser.txt");
   binds = new BindMap();
   MyWindowInitCB(screen);
-  FLAGS_lfapp_video = FLAGS_lfapp_input = 1;
+  FLAGS_lfapp_video = FLAGS_lfapp_input = FLAGS_max_rlimit_open_files = 1;
 }
 
 extern "C" int main(int argc, const char *argv[]) {
   if (app->Create(argc, argv, __FILE__, LFAppCreateCB)) { app->Free(); return -1; }
   if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(); }
   if (app->Init()) { app->Free(); return -1; }
-  VeraMoBdAtlas::SetConsoleDefault();
   app->scheduler.AddWaitForeverKeyboard();
   app->scheduler.AddWaitForeverMouse();
 
