@@ -111,7 +111,7 @@ struct MyBrowserWindow : public GUI {
     InitLayout();
     addressbar = topbar;
     MinusPlus(&addressbar.w, &addressbar.x, 16*3 + 20);
-    child_box.PushBack(topbar, Drawable::Attr(0, &Color::grey70), Singleton<BoxFilled>::Get());
+    child_box.PushBack(topbar, Drawable::Attr((Font*)0, &Color::grey70), Singleton<BoxFilled>::Get());
 
     Flow flow(&box, 0, &child_box);
     flow.cur_attr.font = menu_atlas;
