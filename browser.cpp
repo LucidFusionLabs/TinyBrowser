@@ -34,7 +34,6 @@ DEFINE_bool(render_log, false, "Output render log");
 DEFINE_bool(render_sandbox, true, "Render in sandbox process");
 extern FlagOfType<bool> FLAGS_lfapp_network_;
 
-BindMap *binds;
 Browser::RenderLog render_log;
 
 struct JavaScriptConsole : public Console {
@@ -61,8 +60,8 @@ struct MyBrowserWindow : public GUI {
   back   (this, &menu_atlas->FindGlyph(6)->tex, 0, "", MouseController::CB([&](){ browser->BackButton(); })),
   forward(this, &menu_atlas->FindGlyph(7)->tex, 0, "", MouseController::CB([&](){ browser->ForwardButton(); })),
   refresh(this, &menu_atlas->FindGlyph(8)->tex, 0, "", MouseController::CB([&](){ browser->RefreshButton(); })),
-  address_box(W, Fonts::Get(FLAGS_default_font, "", 12, Color::black, Color::white)) {
-    address_box.bg_color = &Color::white;
+  address_box(W, Fonts::Get(FLAGS_default_font, "", 12, Color::black, Color::grey90)) {
+    address_box.bg_color = &Color::grey90;
     address_box.SetToggleKey(0, true);
     address_box.cmd_prefix.clear();
     address_box.deactivate_on_enter = true;
@@ -153,8 +152,10 @@ void MyWindowInitCB(LFL::Window *W) {
   W->width = FLAGS_width;
   W->height = FLAGS_height;
   W->caption = "Browser";
-  W->binds = binds;
   W->frame_cb = Frame;
+  W->binds = make_unique<BindMap>();
+  W->binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ app->shell.console(vector<string>()); }))));
+  W->binds->Add(Bind('7', Key::Modifier::Cmd, Bind::CB(bind(&MyJavaScriptConsole))));
   if (app->initialized) W->user1 = new MyBrowserWindow(W);
 }
 
@@ -164,35 +165,29 @@ using namespace LFL;
 extern "C" void LFAppCreateCB() {
   app->name = "LBrowser";
   app->logfilename = StrCat(LFAppDownloadDir(), "browser.txt");
-  binds = new BindMap();
   MyWindowInitCB(screen);
   FLAGS_lfapp_video = FLAGS_lfapp_input = FLAGS_max_rlimit_open_files = 1;
 }
 
 extern "C" int main(int argc, const char *argv[]) {
-  if (app->Create(argc, argv, __FILE__, LFAppCreateCB)) { app->Free(); return -1; }
+  if (app->Create(argc, argv, __FILE__, LFAppCreateCB)) return -1;
   if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(); }
-  if (app->Init()) { app->Free(); return -1; }
+  if (app->Init()) return -1;
   app->scheduler.AddWaitForeverKeyboard();
   app->scheduler.AddWaitForeverMouse();
 
-  app->network = new Network();
+  app->net = make_unique<Network>();
 #if !defined(LFL_MOBILE)
   if (FLAGS_render_sandbox) {
     vector<string> arg;
     if (FLAGS_render_log) { arg.push_back("-render_log"); arg.push_back("1"); }
-    app->render_process = new ProcessAPIClient();
-    app->render_process->StartServerProcess(StrCat(app->bindir, "lbrowser-render-sandbox", LocalFile::ExecutableSuffix), arg);
+    app->render_process = make_unique<ProcessAPIClient>();
+    CHECK(app->render_process->StartServerProcess(StrCat(app->bindir, "lbrowser-render-sandbox", LocalFile::ExecutableSuffix), arg));
     CHECK(app->CreateNetworkThread(false, false));
-    app->network->select_time = Seconds(1).count();
-  }
-#else
-  if (0) {}
+    app->net->select_time = Seconds(1).count();
+  } else
 #endif
-  else app->LoadModule(app->network);
-
-  binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ app->shell.console(vector<string>()); }))));
-  binds->Add(Bind('7', Key::Modifier::Cmd, Bind::CB(bind(&MyJavaScriptConsole))));
+  { app->LoadModule(app->net.get()); }
 
   MyBrowserWindow *bw = new MyBrowserWindow(screen);
   screen->user1 = bw;

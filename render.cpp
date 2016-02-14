@@ -33,10 +33,6 @@
 namespace LFL {
 DEFINE_bool(render_log, false, "Output render log");
 
-unique_ptr<Browser> browser;
-unique_ptr<BrowserController> browser_controller;
-Browser::RenderLog render_log;
-
 }; // namespace LFL
 using namespace LFL;
 
@@ -44,28 +40,31 @@ extern "C" void LFAppCreateCB() {
   app->name = "LTerminalRenderSandbox";
   app->logfilename = StrCat(LFAppDownloadDir(), "lterm-render.txt");
   Fonts::DefaultFontEngine()->SetDefault();
-  Singleton<Fonts>::Get()->default_font_engine = Singleton<IPCClientFontEngine>::Get();
+  app->fonts->default_font_engine = app->fonts->ipc_client_engine.get();
   FLAGS_font_engine = "ipc_client";
   FLAGS_max_rlimit_open_files = 1;
 }
 
 extern "C" int main(int argc, const char *argv[]) {
-  if (app->Create(argc, argv, __FILE__, LFAppCreateCB)) { app->Free(); return -1; }
+  if (app->Create(argc, argv, __FILE__, LFAppCreateCB)) return -1;
 
   int optind = Singleton<FlagMap>::Get()->optind;
   if (optind >= argc) { fprintf(stderr, "Usage: %s [-flags] <socket-name>\n", argv[0]); return -1; }
 
-  app->input = new Input();
-  (app->assets = new Assets())->Init();
+  app->input = make_unique<Input>();
+  app->net = make_unique<Network>();
+  (app->asset_loader = make_unique<AssetLoader>())->Init();
 
   const string socket_name = StrCat(argv[optind]);
-  app->main_process = new ProcessAPIServer();
+  app->main_process = make_unique<ProcessAPIServer>();
   app->main_process->OpenSocket(StrCat(argv[optind]));
 
-  browser = unique_ptr<Browser>(new Browser(NULL, screen->Box()));
+  unique_ptr<Browser> browser = make_unique<Browser>(nullptr, screen->Box());
   browser->InitLayers(new LayersIPCClient());
+  unique_ptr<BrowserController> browser_controller = make_unique<BrowserController>(browser.get());
+
+  Browser::RenderLog render_log;
   if (FLAGS_render_log) browser->render_log = &render_log;
-  browser_controller = unique_ptr<BrowserController>(new BrowserController(browser.get()));
 
 #ifdef __APPLE__
   char *sandbox_error=0;

@@ -96,8 +96,8 @@ extern "C" int main(int argc, const char *argv[]) {
     FLAGS_default_font_family = "sans-serif";
     FLAGS_atlas_font_sizes = "32";
 
-    if (app->Create(argc, argv, __FILE__)) { app->Free(); return -1; }
-    if (app->Init()) { app->Free(); return -1; }
+    if (app->Create(argc, argv, __FILE__)) return -1;
+    if (app->Init()) return -1;
 
     screen->gd->ClearColor(Color::white);
     browser = new Browser(new GUI(), screen->Box());
