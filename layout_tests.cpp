@@ -101,7 +101,7 @@ extern "C" int main(int argc, const char *argv[]) {
 
     screen->gd->ClearColor(Color::white);
     browser = new Browser(new GUI(), screen->Box());
-    browser->InitLayers(new Layers());
+    browser->InitLayers(make_unique<Layers>());
     browser->render_log = &render_log;
     if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(FLAGS_layout_tests);
     else if (!FLAGS_render_url.empty()) browser->Open(FLAGS_render_url);

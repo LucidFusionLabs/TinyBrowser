@@ -60,7 +60,7 @@ extern "C" int main(int argc, const char *argv[]) {
   app->main_process->OpenSocket(StrCat(argv[optind]));
 
   unique_ptr<Browser> browser = make_unique<Browser>(nullptr, screen->Box());
-  browser->InitLayers(new LayersIPCClient());
+  browser->InitLayers(make_unique<LayersIPCClient>());
   unique_ptr<BrowserController> browser_controller = make_unique<BrowserController>(browser.get());
 
   Browser::RenderLog render_log;
@@ -81,5 +81,6 @@ extern "C" int main(int argc, const char *argv[]) {
     app->main_process->SetDocsize(0, browser.get()->doc.height);
   }
   INFO("render: exiting");
+  delete app->main_process->conn;
   return 0;
 }

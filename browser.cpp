@@ -84,10 +84,10 @@ struct MyBrowserWindow : public GUI {
 #endif
     if (!browser) {
       browser = lfl_browser = new Browser(this, win);
-      lfl_browser->doc.js_console = unique_ptr<Console>(new JavaScriptConsole(screen, lfl_browser));
+      lfl_browser->doc.js_console = make_unique<JavaScriptConsole>(screen, lfl_browser);
       lfl_browser->doc.js_console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
-      if (app->render_process) lfl_browser->InitLayers(new LayersIPCServer());
-      else                     lfl_browser->InitLayers(new Layers());
+      if (app->render_process) lfl_browser->InitLayers(make_unique<LayersIPCServer>());
+      else                     lfl_browser->InitLayers(make_unique<Layers>());
       if (FLAGS_render_log)    lfl_browser->render_log = &render_log;
       lfl_browser->url_cb = [&](const string &x){ address_box.AssignInput(x); };
     }
