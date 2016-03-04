@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "lfapp/lfapp.h"
-#include "lfapp/dom.h"
-#include "lfapp/css.h"
-#include "lfapp/flow.h"
-#include "lfapp/gui.h"
-#include "lfapp/ipc.h"
-#include "lfapp/browser.h"
-#include "web/html.h"
-#include "web/document.h"
+#include "core/app/app.h"
+#include "core/web/dom.h"
+#include "core/web/css.h"
+#include "core/app/flow.h"
+#include "core/app/gui.h"
+#include "core/app/ipc.h"
+#include "core/app/browser.h"
+#include "core/web/html.h"
+#include "core/web/document.h"
 
 #ifdef __APPLE__
 #include <sandbox.h>
@@ -36,23 +36,24 @@ DEFINE_bool(render_log, false, "Output render log");
 }; // namespace LFL
 using namespace LFL;
 
-extern "C" void LFAppCreateCB() {
-  app->name = "LTerminalRenderSandbox";
-  app->logfilename = StrCat(LFAppDownloadDir(), "lterm-render.txt");
-  Fonts::DefaultFontEngine()->SetDefault();
+extern "C" void MyAppInit() {
+  app->name = "LBrowserRenderSandbox";
+  app->logfilename = StrCat(LFAppDownloadDir(), "lbrowser-render.txt");
+  app->fonts->DefaultFontEngine()->SetDefault();
   app->fonts->default_font_engine = app->fonts->ipc_client_engine.get();
   FLAGS_font_engine = "ipc_client";
   FLAGS_max_rlimit_open_files = 1;
 }
 
-extern "C" int main(int argc, const char *argv[]) {
-  if (app->Create(argc, argv, __FILE__, LFAppCreateCB)) return -1;
+extern "C" int MyAppMain(int argc, const char* const* argv) {
+  if (app->Create(argc, argv, __FILE__)) return -1;
 
   int optind = Singleton<FlagMap>::Get()->optind;
   if (optind >= argc) { fprintf(stderr, "Usage: %s [-flags] <socket-name>\n", argv[0]); return -1; }
 
   app->input = make_unique<Input>();
   app->net = make_unique<Network>();
+  screen->gd = static_cast<GraphicsDevice*>(LFAppCreateGraphicsDevice(2));
   (app->asset_loader = make_unique<AssetLoader>())->Init();
 
   const string socket_name = StrCat(argv[optind]);
@@ -61,7 +62,7 @@ extern "C" int main(int argc, const char *argv[]) {
 
   unique_ptr<Browser> browser = make_unique<Browser>(nullptr, screen->Box());
   browser->InitLayers(make_unique<LayersIPCClient>());
-  unique_ptr<BrowserController> browser_controller = make_unique<BrowserController>(browser.get());
+  screen->AddInputController(make_unique<BrowserController>(browser.get()));
 
   Browser::RenderLog render_log;
   if (FLAGS_render_log) browser->render_log = &render_log;
@@ -80,6 +81,7 @@ extern "C" int main(int argc, const char *argv[]) {
     if (FLAGS_render_log) { printf("Render log: %s\n", render_log.data.c_str()); render_log.Clear(); }
     app->main_process->SetDocsize(0, browser.get()->doc.height);
   }
+
   INFO("render: exiting");
   delete app->main_process->conn;
   return 0;
