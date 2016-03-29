@@ -17,13 +17,9 @@
  */
 
 #include "core/app/app.h"
-#include "core/web/dom.h"
-#include "core/web/css.h"
-#include "core/app/flow.h"
 #include "core/app/gui.h"
 #include "core/app/ipc.h"
-#include "core/app/browser.h"
-#include "core/web/html.h"
+#include "core/web/browser.h"
 #include "core/web/document.h"
 
 namespace LFL {
@@ -163,9 +159,10 @@ void MyWindowStartCB(LFL::Window *W) {
 }; // namespace LFL
 using namespace LFL;
 
-extern "C" void MyAppInit() {
+extern "C" void MyAppCreate() {
   FLAGS_lfapp_video = FLAGS_lfapp_input = FLAGS_max_rlimit_open_files = 1;
-  app->logfilename = StrCat(LFAppDownloadDir(), "lbrowser.txt");
+  app = new Application();
+  screen = new Window();
   app->window_start_cb = MyWindowStartCB;
   app->window_init_cb = MyWindowInitCB;
   app->window_init_cb(screen);
@@ -184,6 +181,7 @@ extern "C" int MyAppMain(int argc, const char* const* argv) {
   if (FLAGS_render_sandbox) {
     vector<string> arg;
     if (FLAGS_render_log) { arg.push_back("-render_log"); arg.push_back("1"); }
+    app->log_pid = true;
     app->render_process = make_unique<ProcessAPIClient>();
     CHECK(app->render_process->StartServerProcess(StrCat(app->bindir, "lbrowser-render-sandbox", LocalFile::ExecutableSuffix), arg));
     CHECK(app->CreateNetworkThread(false, false));

@@ -17,13 +17,9 @@
  */
 
 #include "core/app/app.h"
-#include "core/web/dom.h"
-#include "core/web/css.h"
-#include "core/app/flow.h"
 #include "core/app/gui.h"
 #include "core/app/ipc.h"
-#include "core/app/browser.h"
-#include "core/web/html.h"
+#include "core/web/browser.h"
 #include "core/web/document.h"
 
 #ifdef __APPLE__
@@ -36,9 +32,11 @@ DEFINE_bool(render_log, false, "Output render log");
 }; // namespace LFL
 using namespace LFL;
 
-extern "C" void MyAppInit() {
+extern "C" void MyAppCreate() {
+  app = new Application();
+  screen = new Window();
   app->name = "LBrowserRenderSandbox";
-  app->logfilename = StrCat(LFAppDownloadDir(), "lbrowser-render.txt");
+  app->log_pid = true;
   app->fonts->DefaultFontEngine()->SetDefault();
   app->fonts->default_font_engine = app->fonts->ipc_client_engine.get();
   FLAGS_font_engine = "ipc_client";
@@ -53,7 +51,7 @@ extern "C" int MyAppMain(int argc, const char* const* argv) {
 
   app->input = make_unique<Input>();
   app->net = make_unique<Network>();
-  screen->gd = static_cast<GraphicsDevice*>(LFAppCreateGraphicsDevice(2));
+  screen->gd = CreateGraphicsDevice(2).release();
   (app->asset_loader = make_unique<AssetLoader>())->Init();
 
   const string socket_name = StrCat(argv[optind]);

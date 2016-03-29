@@ -17,13 +17,9 @@
  */
 
 #include "core/app/app.h"
-#include "core/web/dom.h"
-#include "core/web/css.h"
-#include "core/app/flow.h"
 #include "core/app/gui.h"
 #include "core/app/ipc.h"
-#include "core/app/browser.h"
-#include "core/web/html.h"
+#include "core/web/browser.h"
 #include "core/web/document.h"
 
 using namespace LFL;
@@ -83,13 +79,14 @@ int Frame(LFL::Window *W, unsigned clicks, int flag) {
   return 0;
 }
 
-extern "C" void MyAppInit() {
+extern "C" void MyAppCreate() {
   FLAGS_lfapp_video = FLAGS_lfapp_input = FLAGS_lfapp_network = 1;
   FLAGS_font_engine = "freetype";
   FLAGS_default_font = "DejaVuSans.ttf";
   FLAGS_default_font_family = "sans-serif";
   FLAGS_atlas_font_sizes = "32";
-  app->logfilename = StrCat(LFAppDownloadDir(), "layout_tests.txt");
+  app = new Application();
+  screen = new Window();
   screen->frame_cb = Frame;
   screen->caption = "layout_tests";
   screen->width = 800;
