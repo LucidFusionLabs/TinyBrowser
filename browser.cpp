@@ -58,7 +58,7 @@ struct MyBrowserWindow : public GUI {
     back   (this, &menu_atlas->FindGlyph(6)->tex, "", MouseController::CB([&](){ browser->BackButton(); })),
     forward(this, &menu_atlas->FindGlyph(7)->tex, "", MouseController::CB([&](){ browser->ForwardButton(); })),
     refresh(this, &menu_atlas->FindGlyph(8)->tex, "", MouseController::CB([&](){ browser->RefreshButton(); })),
-    address_box(screen->gd, FontDesc(FLAGS_default_font, "", 12, Color::black, Color::grey90)) {
+    address_box(screen->gd, FontDesc(FLAGS_font, "", 12, Color::black, Color::grey90)) {
     address_box.bg_color = &Color::grey90;
     address_box.SetToggleKey(0, true);
     address_box.cmd_prefix.clear();
@@ -138,7 +138,7 @@ struct MyBrowserWindow : public GUI {
     if (lfl_browser && lfl_browser->doc.js_console) lfl_browser->doc.js_console->ToggleActive();
   }
 
-  void UpdateTargetFPS() { app->scheduler.SetAnimating((screen->console && screen->console->animating) || 
+  void UpdateTargetFPS() { app->scheduler.SetAnimating(screen, (screen->console && screen->console->animating) || 
                                                        (lfl_browser && lfl_browser->doc.js_console->animating)); }
 };
 
@@ -159,9 +159,9 @@ void MyWindowStartCB(LFL::Window *W) {
 }; // namespace LFL
 using namespace LFL;
 
-extern "C" void MyAppCreate() {
-  FLAGS_lfapp_video = FLAGS_lfapp_input = FLAGS_max_rlimit_open_files = 1;
-  app = new Application();
+extern "C" void MyAppCreate(int argc, const char* const* argv) {
+  FLAGS_enable_video = FLAGS_enable_input = FLAGS_max_rlimit_open_files = 1;
+  app = new Application(argc, argv);
   screen = new Window();
   app->window_start_cb = MyWindowStartCB;
   app->window_init_cb = MyWindowInitCB;
@@ -169,12 +169,12 @@ extern "C" void MyAppCreate() {
   app->name = "LBrowser";
 }
 
-extern "C" int MyAppMain(int argc, const char* const* argv) {
-  if (app->Create(argc, argv, __FILE__)) return -1;
+extern "C" int MyAppMain() {
+  if (app->Create(__FILE__)) return -1;
   if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(); }
   if (app->Init()) return -1;
-  app->scheduler.AddWaitForeverKeyboard();
-  app->scheduler.AddWaitForeverMouse();
+  app->scheduler.AddWaitForeverKeyboard(screen);
+  app->scheduler.AddWaitForeverMouse(screen);
 
   app->net = make_unique<Network>();
 #if !defined(LFL_MOBILE)

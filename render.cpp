@@ -32,8 +32,8 @@ DEFINE_bool(render_log, false, "Output render log");
 }; // namespace LFL
 using namespace LFL;
 
-extern "C" void MyAppCreate() {
-  app = new Application();
+extern "C" void MyAppCreate(int argc, const char* const* argv) {
+  app = new Application(argc, argv);
   screen = new Window();
   app->name = "LBrowserRenderSandbox";
   app->log_pid = true;
@@ -43,20 +43,20 @@ extern "C" void MyAppCreate() {
   FLAGS_max_rlimit_open_files = 1;
 }
 
-extern "C" int MyAppMain(int argc, const char* const* argv) {
-  if (app->Create(argc, argv, __FILE__)) return -1;
+extern "C" int MyAppMain() {
+  if (app->Create(__FILE__)) return -1;
 
   int optind = Singleton<FlagMap>::Get()->optind;
-  if (optind >= argc) { fprintf(stderr, "Usage: %s [-flags] <socket-name>\n", argv[0]); return -1; }
+  if (optind >= app->argc) { fprintf(stderr, "Usage: %s [-flags] <socket-name>\n", app->argv[0]); return -1; }
 
   app->input = make_unique<Input>();
   app->net = make_unique<Network>();
   screen->gd = CreateGraphicsDevice(2).release();
   (app->asset_loader = make_unique<AssetLoader>())->Init();
 
-  const string socket_name = StrCat(argv[optind]);
+  const string socket_name = StrCat(app->argv[optind]);
   app->main_process = make_unique<ProcessAPIServer>();
-  app->main_process->OpenSocket(StrCat(argv[optind]));
+  app->main_process->OpenSocket(StrCat(app->argv[optind]));
 
   unique_ptr<Browser> browser = make_unique<Browser>(nullptr, screen->Box());
   browser->InitLayers(make_unique<LayersIPCClient>());

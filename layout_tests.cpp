@@ -79,13 +79,13 @@ int Frame(LFL::Window *W, unsigned clicks, int flag) {
   return 0;
 }
 
-extern "C" void MyAppCreate() {
-  FLAGS_lfapp_video = FLAGS_lfapp_input = FLAGS_lfapp_network = 1;
+extern "C" void MyAppCreate(int argc, const char* const* argv) {
+  FLAGS_enable_video = FLAGS_enable_input = FLAGS_enable_network = 1;
   FLAGS_font_engine = "freetype";
-  FLAGS_default_font = "DejaVuSans.ttf";
-  FLAGS_default_font_family = "sans-serif";
+  FLAGS_font = "DejaVuSans.ttf";
+  FLAGS_font_family = "sans-serif";
   FLAGS_atlas_font_sizes = "32";
-  app = new Application();
+  app = new Application(argc, argv);
   screen = new Window();
   screen->frame_cb = Frame;
   screen->caption = "layout_tests";
@@ -93,8 +93,8 @@ extern "C" void MyAppCreate() {
   screen->height = 600;
 }
 
-extern "C" int MyAppMain(int argc, const char* const* argv) {
-  if (app->Create(argc, argv, __FILE__)) return -1;
+extern "C" int MyAppMain() {
+  if (app->Create(__FILE__)) return -1;
   if (app->Init()) return -1;
 
   screen->gd->ClearColor(Color::white);
