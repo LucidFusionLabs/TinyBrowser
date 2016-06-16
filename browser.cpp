@@ -32,7 +32,7 @@ extern FlagOfType<bool> FLAGS_lfapp_network_;
 
 struct JavaScriptConsole : public Console {
   Browser *browser;
-  JavaScriptConsole(GraphicsDevice *D, Browser *B) : Console(D), browser(B)
+  JavaScriptConsole(Window *W, Browser *B) : Console(W), browser(B)
   { bottom_or_top = 1; write_timestamp = 0; color = Color(Color::black, 0.9); }
 
   virtual void Run(const string &in) override {
@@ -53,12 +53,12 @@ struct MyBrowserWindow : public GUI {
   BrowserController *controller=0;
   Browser::RenderLog render_log;
 
-  MyBrowserWindow() :
+  MyBrowserWindow(Window *W) : GUI(W),
     menu_atlas(app->fonts->Get("MenuAtlas", "", 0, Color::white, Color::clear, 0)),
     back   (this, &menu_atlas->FindGlyph(6)->tex, "", MouseController::CB([&](){ browser->BackButton(); })),
     forward(this, &menu_atlas->FindGlyph(7)->tex, "", MouseController::CB([&](){ browser->ForwardButton(); })),
     refresh(this, &menu_atlas->FindGlyph(8)->tex, "", MouseController::CB([&](){ browser->RefreshButton(); })),
-    address_box(screen->gd, FontDesc(FLAGS_font, "", 12, Color::black, Color::grey90)) {
+    address_box(W, FontDesc(FLAGS_font, "", 12, Color::black, Color::grey90)) {
     address_box.bg_color = &Color::grey90;
     address_box.SetToggleKey(0, true);
     address_box.cmd_prefix.clear();
@@ -80,7 +80,7 @@ struct MyBrowserWindow : public GUI {
 #endif
     if (!browser) {
       browser = (lfl_browser = make_unique<Browser>(this, win)).get();
-      lfl_browser->doc.js_console = make_unique<JavaScriptConsole>(screen->gd, lfl_browser.get());
+      lfl_browser->doc.js_console = make_unique<JavaScriptConsole>(root, lfl_browser.get());
       lfl_browser->doc.js_console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
       if (app->render_process) lfl_browser->InitLayers(make_unique<LayersIPCServer>());
       else                     lfl_browser->InitLayers(make_unique<Layers>());
@@ -102,7 +102,7 @@ struct MyBrowserWindow : public GUI {
   }
 
   void Layout() {
-    Reset();
+    ResetGUI();
     InitLayout();
     addressbar = topbar;
     MinusPlus(&addressbar.w, &addressbar.x, 16*3 + 20);
@@ -149,7 +149,7 @@ void MyWindowInitCB(LFL::Window *W) {
 }
 
 void MyWindowStartCB(LFL::Window *W) {
-  MyBrowserWindow *bw = W->AddGUI(make_unique<MyBrowserWindow>());
+  MyBrowserWindow *bw = W->AddGUI(make_unique<MyBrowserWindow>(W));
   W->frame_cb = bind(&MyBrowserWindow::Frame, bw, _1, _2, _3);
   BindMap *binds = W->AddInputController(make_unique<BindMap>());
   binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ screen->shell->console(vector<string>()); }))));
