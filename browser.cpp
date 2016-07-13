@@ -173,8 +173,8 @@ extern "C" int MyAppMain() {
   if (app->Create(__FILE__)) return -1;
   if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(); }
   if (app->Init()) return -1;
-  app->scheduler.AddWaitForeverKeyboard(screen);
-  app->scheduler.AddWaitForeverMouse(screen);
+  app->scheduler.AddFrameWaitKeyboard(screen);
+  app->scheduler.AddFrameWaitMouse(screen);
 
   app->net = make_unique<Network>();
 #if !defined(LFL_MOBILE)
