@@ -36,6 +36,9 @@ else()
       app_openssl_ssl app_null_js app_null_tu ${LFL_APP_OS})
 endif()
 lfl_add_package(lbrowser SOURCES browser.cpp LINK_LIBRARIES ${libs})
+if(NOT LFL_MOBILE)
+  add_dependencies(lbrowser ffmpeg)
+endif()
 
 set(LFL_APP_ASSET_FILES ${LFL_APP_ASSET_FILES} ${LFL_SOURCE_DIR}/core/app/assets/FreeSans.ttf
     ${LFL_SOURCE_DIR}/core/app/assets/DejaVuSans*.ttf ${LFL_SOURCE_DIR}/core/app/assets/VeraMoBd.ttf,32,*)
