@@ -86,19 +86,19 @@ extern "C" void MyAppCreate(int argc, const char* const* argv) {
   FLAGS_font_family = "sans-serif";
   FLAGS_atlas_font_sizes = "32";
   app = new Application(argc, argv);
-  screen = new Window();
-  screen->frame_cb = Frame;
-  screen->caption = "layout_tests";
-  screen->width = 800;
-  screen->height = 600;
+  app->focused = new Window();
+  app->focused->frame_cb = Frame;
+  app->focused->caption = "layout_tests";
+  app->focused->width = 800;
+  app->focused->height = 600;
 }
 
 extern "C" int MyAppMain() {
   if (app->Create(__FILE__)) return -1;
   if (app->Init()) return -1;
 
-  screen->gd->ClearColor(Color::white);
-  browser = new Browser(new GUI(screen), screen->Box());
+  app->focused->gd->ClearColor(Color::white);
+  browser = new Browser(new GUI(app->focused), app->focused->Box());
   browser->InitLayers(make_unique<Layers>());
   browser->render_log = &render_log;
   if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(FLAGS_layout_tests);

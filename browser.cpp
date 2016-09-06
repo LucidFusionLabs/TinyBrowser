@@ -87,13 +87,13 @@ struct MyBrowserWindow : public GUI {
       if (FLAGS_render_log)    lfl_browser->render_log = &render_log;
       lfl_browser->url_cb = [&](const string &x){ address_box.AssignInput(x); };
     }
-    if (!controller) controller = screen->AddInputController(make_unique<BrowserController>(browser));
-    if (screen->console) screen->console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
+    if (!controller) controller = root->AddInputController(make_unique<BrowserController>(browser));
+    if (root->console) root->console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
     Layout();
   }
 
   void InitLayout() {
-    box = win = screen->Box();
+    box = win = root->Box();
     win.SetPosition(point(0, -win.h));
     topbar = win;
     topbar.h = 16;
@@ -129,7 +129,7 @@ struct MyBrowserWindow : public GUI {
 
   int Frame(LFL::Window *W, unsigned clicks, int flag) {
     Draw();
-    screen->DrawDialogs();
+    W->DrawDialogs();
     if (FLAGS_render_log && !app->render_process) { printf("Render log: %s\n", render_log.data.c_str()); render_log.Clear(); }
     return 0;
   }
@@ -138,7 +138,7 @@ struct MyBrowserWindow : public GUI {
     if (lfl_browser && lfl_browser->doc.js_console) lfl_browser->doc.js_console->ToggleActive();
   }
 
-  void UpdateTargetFPS() { app->scheduler.SetAnimating(screen, (screen->console && screen->console->animating) || 
+  void UpdateTargetFPS() { app->scheduler.SetAnimating(root, (root->console && root->console->animating) || 
                                                        (lfl_browser && lfl_browser->doc.js_console->animating)); }
 };
 
@@ -152,7 +152,7 @@ void MyWindowStartCB(LFL::Window *W) {
   MyBrowserWindow *bw = W->AddGUI(make_unique<MyBrowserWindow>(W));
   W->frame_cb = bind(&MyBrowserWindow::Frame, bw, _1, _2, _3);
   BindMap *binds = W->AddInputController(make_unique<BindMap>());
-  binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ screen->shell->console(vector<string>()); }))));
+  binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ W->shell->console(vector<string>()); }))));
   binds->Add(Bind('7', Key::Modifier::Cmd, Bind::CB(bind(&MyBrowserWindow::ToggleJavaScriptConsole, bw))));
 }
 
@@ -162,10 +162,10 @@ using namespace LFL;
 extern "C" void MyAppCreate(int argc, const char* const* argv) {
   FLAGS_enable_video = FLAGS_enable_input = FLAGS_max_rlimit_open_files = 1;
   app = new Application(argc, argv);
-  screen = new Window();
+  app->focused = new Window();
   app->window_start_cb = MyWindowStartCB;
   app->window_init_cb = MyWindowInitCB;
-  app->window_init_cb(screen);
+  app->window_init_cb(app->focused);
   app->name = "LBrowser";
 }
 
@@ -173,8 +173,8 @@ extern "C" int MyAppMain() {
   if (app->Create(__FILE__)) return -1;
   if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(); }
   if (app->Init()) return -1;
-  app->scheduler.AddFrameWaitKeyboard(screen);
-  app->scheduler.AddFrameWaitMouse(screen);
+  app->scheduler.AddMainWaitKeyboard(app->focused);
+  app->scheduler.AddMainWaitMouse(app->focused);
 
   app->net = make_unique<Network>();
 #if !defined(LFL_MOBILE)
@@ -190,8 +190,8 @@ extern "C" int MyAppMain() {
 #endif
   { app->LoadModule(app->net.get()); }
 
-  app->StartNewWindow(screen);
-  auto bw = screen->GetGUI<MyBrowserWindow>(0);
+  app->StartNewWindow(app->focused);
+  auto bw = app->focused->GetGUI<MyBrowserWindow>(0);
   if (!FLAGS_url.empty()) bw->Open(FLAGS_url);
   if (app->render_process) {
     app->render_process->browser = bw->lfl_browser.get();

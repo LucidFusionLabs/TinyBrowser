@@ -34,7 +34,7 @@ using namespace LFL;
 
 extern "C" void MyAppCreate(int argc, const char* const* argv) {
   app = new Application(argc, argv);
-  screen = new Window();
+  app->focused = new Window();
   app->name = "LBrowserRenderSandbox";
   app->log_pid = true;
   app->fonts->DefaultFontEngine()->SetDefault();
@@ -51,16 +51,16 @@ extern "C" int MyAppMain() {
 
   app->input = make_unique<Input>();
   app->net = make_unique<Network>();
-  screen->gd = CreateGraphicsDevice(2).release();
+  app->focused->gd = CreateGraphicsDevice(app->focused, 2).release();
   (app->asset_loader = make_unique<AssetLoader>())->Init();
 
   const string socket_name = StrCat(app->argv[optind]);
   app->main_process = make_unique<ProcessAPIServer>();
   app->main_process->OpenSocket(StrCat(app->argv[optind]));
 
-  unique_ptr<Browser> browser = make_unique<Browser>(nullptr, screen->Box());
+  unique_ptr<Browser> browser = make_unique<Browser>(nullptr, app->focused->Box());
   browser->InitLayers(make_unique<LayersIPCClient>());
-  screen->AddInputController(make_unique<BrowserController>(browser.get()));
+  app->focused->AddInputController(make_unique<BrowserController>(browser.get()));
 
   Browser::RenderLog render_log;
   if (FLAGS_render_log) browser->render_log = &render_log;
