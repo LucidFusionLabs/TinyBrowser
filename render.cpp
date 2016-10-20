@@ -50,7 +50,7 @@ extern "C" int MyAppMain() {
   if (optind >= app->argc) { fprintf(stderr, "Usage: %s [-flags] <socket-name>\n", app->argv[0]); return -1; }
 
   app->input = make_unique<Input>();
-  app->net = make_unique<Network>();
+  app->net = make_unique<SocketServices>();
   app->focused->gd = CreateGraphicsDevice(app->focused, 2).release();
   (app->asset_loader = make_unique<AssetLoader>())->Init();
 

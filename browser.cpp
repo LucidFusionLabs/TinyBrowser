@@ -176,7 +176,7 @@ extern "C" int MyAppMain() {
   app->scheduler.AddMainWaitKeyboard(app->focused);
   app->scheduler.AddMainWaitMouse(app->focused);
 
-  app->net = make_unique<Network>();
+  app->net = make_unique<SocketServices>();
 #if !defined(LFL_MOBILE)
   if (FLAGS_render_sandbox) {
     vector<string> arg;
