@@ -34,7 +34,7 @@ using namespace LFL;
 
 extern "C" void MyAppCreate(int argc, const char* const* argv) {
   app = new Application(argc, argv);
-  app->focused = new Window();
+  app->focused = Window::Create();
   app->name = "LBrowserRenderSandbox";
   app->log_pid = true;
   app->fonts->DefaultFontEngine()->SetDefault();

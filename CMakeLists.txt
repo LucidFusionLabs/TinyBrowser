@@ -1,5 +1,9 @@
 # $Id: CMakeLists.txt 1320 2014-10-26 08:12:52Z justin $
 
+if(LFL_MOBILE)
+  return()
+endif()
+
 set(LFL_SINGLE_THREADED_BROWSER_SUPPORT 1)
 set(LFL_V8JS 1)
 lfl_set_os_toolkit(BROWSER)
@@ -13,7 +17,7 @@ if(NOT LFL_MOBILE)
                   app_null_ssl app_null_js app_null_tu ${BROWSER_TOOLKIT} ${LFL_APP_OS}) 
 endif()
 
-lfl_project(lbrowser-render-sandbox)
+lfl_project(lbrowser-render-sandbox com.lucidfusionlabs.LBrowser)
 lfl_add_package(lbrowser-render-sandbox SOURCES render.cpp
                 LINK_LIBRARIES ${LFL_APP_LIB} app_null_framework
                 app_null_graphics app_null_audio app_null_camera app_null_matrix app_null_fft

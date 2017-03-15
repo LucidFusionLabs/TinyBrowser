@@ -86,7 +86,7 @@ extern "C" void MyAppCreate(int argc, const char* const* argv) {
   FLAGS_font_family = "sans-serif";
   FLAGS_atlas_font_sizes = "32";
   app = new Application(argc, argv);
-  app->focused = new Window();
+  app->focused = Window::Create();
   app->focused->frame_cb = Frame;
   app->focused->caption = "layout_tests";
   app->focused->width = 800;

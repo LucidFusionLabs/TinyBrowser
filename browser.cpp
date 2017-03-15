@@ -162,7 +162,7 @@ using namespace LFL;
 extern "C" void MyAppCreate(int argc, const char* const* argv) {
   FLAGS_enable_video = FLAGS_enable_input = FLAGS_max_rlimit_open_files = 1;
   app = new Application(argc, argv);
-  app->focused = new Window();
+  app->focused = Window::Create();
   app->window_start_cb = MyWindowStartCB;
   app->window_init_cb = MyWindowInitCB;
   app->window_init_cb(app->focused);
