@@ -98,7 +98,7 @@ extern "C" int MyAppMain() {
   if (app->Init()) return -1;
 
   app->focused->gd->ClearColor(Color::white);
-  browser = new Browser(new GUI(app->focused), app->focused->Box());
+  browser = new Browser(new View(app->focused), app->focused->Box());
   browser->InitLayers(make_unique<Layers>());
   browser->render_log = &render_log;
   if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(FLAGS_layout_tests);

@@ -42,7 +42,7 @@ struct JavaScriptConsole : public Console {
   void ExecuteResponseCB(const string &res) { if (!res.empty()) Write(res); }
 };
 
-struct MyBrowserWindow : public GUI {
+struct MyBrowserWindow : public View {
   Font *menu_atlas;
   Box win, topbar, addressbar;
   Widget::Button back, forward, refresh;
@@ -53,7 +53,7 @@ struct MyBrowserWindow : public GUI {
   BrowserController *controller=0;
   Browser::RenderLog render_log;
 
-  MyBrowserWindow(Window *W) : GUI(W),
+  MyBrowserWindow(Window *W) : View(W),
     menu_atlas(app->fonts->Get("MenuAtlas", "", 0, Color::white, Color::clear, 0)),
     back   (this, &menu_atlas->FindGlyph(6)->tex, "", MouseController::CB([&](){ browser->BackButton(); })),
     forward(this, &menu_atlas->FindGlyph(7)->tex, "", MouseController::CB([&](){ browser->ForwardButton(); })),
@@ -102,7 +102,7 @@ struct MyBrowserWindow : public GUI {
   }
 
   void Layout() {
-    ResetGUI();
+    ResetView();
     InitLayout();
     addressbar = topbar;
     MinusPlus(&addressbar.w, &addressbar.x, 16*3 + 20);
@@ -118,7 +118,7 @@ struct MyBrowserWindow : public GUI {
   }
 
   void Draw() {
-    GUI::Draw();
+    View::Draw();
     browser->Draw(box);
     address_box.Draw(addressbar + box.TopLeft());
     if (lfl_browser) {
@@ -149,7 +149,7 @@ void MyWindowInitCB(LFL::Window *W) {
 }
 
 void MyWindowStartCB(LFL::Window *W) {
-  MyBrowserWindow *bw = W->AddGUI(make_unique<MyBrowserWindow>(W));
+  MyBrowserWindow *bw = W->AddView(make_unique<MyBrowserWindow>(W));
   W->frame_cb = bind(&MyBrowserWindow::Frame, bw, _1, _2, _3);
   BindMap *binds = W->AddInputController(make_unique<BindMap>());
   binds->Add(Bind('6', Key::Modifier::Cmd, Bind::CB(bind([&](){ W->shell->console(vector<string>()); }))));
@@ -191,7 +191,7 @@ extern "C" int MyAppMain() {
   { app->LoadModule(app->net.get()); }
 
   app->StartNewWindow(app->focused);
-  auto bw = app->focused->GetGUI<MyBrowserWindow>(0);
+  auto bw = app->focused->GetView<MyBrowserWindow>(0);
   if (!FLAGS_url.empty()) bw->Open(FLAGS_url);
   if (app->render_process) {
     app->render_process->browser = bw->lfl_browser.get();
