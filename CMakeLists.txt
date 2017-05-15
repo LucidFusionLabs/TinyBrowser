@@ -17,8 +17,8 @@ if(NOT LFL_MOBILE)
                  app_null_ssl app_null_js app_null_tu app_null_crashreporting ${BROWSER_TOOLKIT} ${LFL_APP_OS}) 
 endif()
 
-lfl_project(lbrowser-render-sandbox)
-lfl_add_target(lbrowser-render-sandbox EXECUTABLE SOURCES render.cpp
+lfl_project(tinybrowser-render-sandbox)
+lfl_add_target(tinybrowser-render-sandbox EXECUTABLE SOURCES render.cpp
                LINK_LIBRARIES ${LFL_APP_LIB} app_null_framework app_null_toolkit
                app_null_graphics app_null_audio app_null_camera app_null_matrix app_null_fft
                app_simple_resampler app_simple_loader ${LFL_APP_CONVERT} app_libpng_png
