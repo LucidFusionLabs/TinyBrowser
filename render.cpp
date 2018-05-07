@@ -17,7 +17,7 @@
  */
 
 #include "core/app/app.h"
-#include "core/app/gui.h"
+#include "core/app/gl/view.h"
 #include "core/app/ipc.h"
 #include "core/web/browser.h"
 #include "core/web/document.h"
@@ -27,20 +27,19 @@
 #endif
 
 namespace LFL {
+Application *app;
 DEFINE_bool(render_log, false, "Output render log");
 
-}; // namespace LFL
-using namespace LFL;
-
-extern "C" void MyAppCreate(int argc, const char* const* argv) {
+extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   app = new Application(argc, argv);
-  app->focused = Window::Create();
+  app->focused = CreateWindow(app);
   app->name = "LBrowserRenderSandbox";
   app->log_pid = true;
   app->fonts->DefaultFontEngine()->SetDefault();
-  app->fonts->default_font_engine = app->fonts->ipc_client_engine.get();
+  app->fonts->default_font_engine = app->fonts->ipc_client_engine.get(app, app->fonts.get());
   FLAGS_font_engine = "ipc_client";
   FLAGS_max_rlimit_open_files = 1;
+  return app;
 }
 
 extern "C" int MyAppMain() {
@@ -49,18 +48,20 @@ extern "C" int MyAppMain() {
   int optind = Singleton<FlagMap>::Get()->optind;
   if (optind >= app->argc) { fprintf(stderr, "Usage: %s [-flags] <socket-name>\n", app->argv[0]); return -1; }
 
-  app->input = make_unique<Input>();
-  app->net = make_unique<SocketServices>();
-  app->focused->gd = CreateGraphicsDevice(app->focused, 2).release();
-  (app->asset_loader = make_unique<AssetLoader>())->Init();
+  app->input = make_unique<Input>(app, app, app);
+  app->net = make_unique<SocketServices>(app, app);
+  app->focused->gd = CreateGraphicsDevice(app->focused, app->shaders.get(),2).release();
+  (app->asset_loader = make_unique<AssetLoader>(app))->Init();
 
   const string socket_name = StrCat(app->argv[optind]);
-  app->main_process = make_unique<ProcessAPIServer>();
+  app->main_process = make_unique<ProcessAPIServer>(app, app, app->input.get(), app->net.get(), app);
   app->main_process->OpenSocket(StrCat(app->argv[optind]));
 
-  unique_ptr<Browser> browser = make_unique<Browser>(nullptr, app->focused->Box());
-  browser->InitLayers(make_unique<LayersIPCClient>());
-  app->focused->AddInputController(make_unique<BrowserController>(browser.get()));
+  unique_ptr<Browser> browser = make_unique<Browser>(app, app->focused, app, app->fonts.get(),
+                                                     app->net.get(), app->main_process.get(), app,
+                                                     nullptr, app->focused->Box());
+  browser->InitLayers(make_unique<LayersIPCClient>(app, app));
+  app->focused->AddInputController(make_unique<BrowserController>(app->focused, browser.get()));
 
   Browser::RenderLog render_log;
   if (FLAGS_render_log) browser->render_log = &render_log;
@@ -84,3 +85,5 @@ extern "C" int MyAppMain() {
   delete app->main_process->conn;
   return 0;
 }
+
+}; // namespace LFL

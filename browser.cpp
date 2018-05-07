@@ -17,8 +17,9 @@
  */
 
 #include "core/app/app.h"
-#include "core/app/gui.h"
+#include "core/app/gl/view.h"
 #include "core/app/ipc.h"
+#include "core/app/shell.h"
 #include "core/web/browser.h"
 #include "core/web/document.h"
 
@@ -29,6 +30,7 @@ DEFINE_int(height, 768, "browser height");
 DEFINE_bool(render_log, false, "Output render log");
 DEFINE_bool(render_sandbox, true, "Render in sandbox process");
 extern FlagOfType<bool> FLAGS_lfapp_network_;
+Application *app;
 
 struct JavaScriptConsole : public Console {
   Browser *browser;
@@ -54,12 +56,12 @@ struct MyBrowserWindow : public View {
   Browser::RenderLog render_log;
 
   MyBrowserWindow(Window *W) : View(W),
-    menu_atlas(app->fonts->Get("MenuAtlas", "", 0, Color::white, Color::clear, 0)),
+    menu_atlas(app->fonts->Get(W->gl_h, "MenuAtlas", "", 0, Color::white, Color::clear, 0)),
     back   (this, &menu_atlas->FindGlyph(6)->tex, "", MouseController::CB([&](){ browser->BackButton(); })),
     forward(this, &menu_atlas->FindGlyph(7)->tex, "", MouseController::CB([&](){ browser->ForwardButton(); })),
     refresh(this, &menu_atlas->FindGlyph(8)->tex, "", MouseController::CB([&](){ browser->RefreshButton(); })),
-    address_box(W, FontDesc(FLAGS_font, "", 12, Color::black, Color::grey90)) {
-    address_box.bg_color = &Color::grey90;
+    address_box(W, FontRef(W, FontDesc(FLAGS_font, "", 12, Color::black, Color::grey90))) {
+    address_box.bg_color = Color::grey90;
     address_box.SetToggleKey(0, true);
     address_box.cmd_prefix.clear();
     address_box.deactivate_on_enter = true;
@@ -79,15 +81,17 @@ struct MyBrowserWindow : public View {
     if (!browser) browser = (berkelium_browser = CreateBerkeliumBrowser(this, win.w, win.h)).get()
 #endif
     if (!browser) {
-      browser = (lfl_browser = make_unique<Browser>(this, win)).get();
+      browser = (lfl_browser = make_unique<Browser>
+                 (app, app->focused, app, app->fonts.get(), app->net.get(), app->render_process.get(),
+                  app, this, win)).get();
       lfl_browser->doc.js_console = make_unique<JavaScriptConsole>(root, lfl_browser.get());
       lfl_browser->doc.js_console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
-      if (app->render_process) lfl_browser->InitLayers(make_unique<LayersIPCServer>());
-      else                     lfl_browser->InitLayers(make_unique<Layers>());
+      if (app->render_process) lfl_browser->InitLayers(make_unique<LayersIPCServer>(app, app));
+      else                     lfl_browser->InitLayers(make_unique<Layers>(app, app));
       if (FLAGS_render_log)    lfl_browser->render_log = &render_log;
       lfl_browser->url_cb = [&](const string &x){ address_box.AssignInput(x); };
     }
-    if (!controller) controller = root->AddInputController(make_unique<BrowserController>(browser));
+    if (!controller) controller = root->AddInputController(make_unique<BrowserController>(root, browser));
     if (root->console) root->console->animating_cb = bind(&MyBrowserWindow::UpdateTargetFPS, this);
     Layout();
   }
@@ -143,8 +147,8 @@ struct MyBrowserWindow : public View {
 };
 
 void MyWindowInitCB(LFL::Window *W) {
-  W->width = FLAGS_width;
-  W->height = FLAGS_height;
+  W->gl_w = FLAGS_width;
+  W->gl_h = FLAGS_height;
   W->caption = "Browser";
 }
 
@@ -159,31 +163,32 @@ void MyWindowStartCB(LFL::Window *W) {
 }; // namespace LFL
 using namespace LFL;
 
-extern "C" void MyAppCreate(int argc, const char* const* argv) {
+extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   FLAGS_enable_video = FLAGS_enable_input = FLAGS_max_rlimit_open_files = 1;
   app = new Application(argc, argv);
-  app->focused = Window::Create();
+  app->focused = CreateWindow(app);
   app->window_start_cb = MyWindowStartCB;
   app->window_init_cb = MyWindowInitCB;
   app->window_init_cb(app->focused);
-  app->name = "LBrowser";
+  app->name = "TinyBrowser";
+  return app;
 }
 
 extern "C" int MyAppMain() {
   if (app->Create(__FILE__)) return -1;
-  if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(); }
+  if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(app->fonts.get()); }
   if (app->Init()) return -1;
   app->scheduler.AddMainWaitKeyboard(app->focused);
   app->scheduler.AddMainWaitMouse(app->focused);
 
-  app->net = make_unique<SocketServices>();
+  app->net = make_unique<SocketServices>(app, app);
 #if !defined(LFL_MOBILE)
   if (FLAGS_render_sandbox) {
     vector<string> arg;
     if (FLAGS_render_log) { arg.push_back("-render_log"); arg.push_back("1"); }
     app->log_pid = true;
-    app->render_process = make_unique<ProcessAPIClient>();
-    CHECK(app->render_process->StartServerProcess(StrCat(app->bindir, "lbrowser-render-sandbox", LocalFile::ExecutableSuffix), arg));
+    app->render_process = make_unique<ProcessAPIClient>(app, app, app->net.get(), app, app->fonts.get());
+    CHECK(app->render_process->StartServerProcess(StrCat(app->bindir, "tinybrowser-render-sandbox", LocalFile::ExecutableSuffix), arg));
     CHECK(app->CreateNetworkThread(false, false));
     app->net->select_time = Seconds(1).count();
   } else

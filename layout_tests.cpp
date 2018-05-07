@@ -17,17 +17,18 @@
  */
 
 #include "core/app/app.h"
-#include "core/app/gui.h"
+#include "core/app/gl/view.h"
 #include "core/app/ipc.h"
+#include "core/app/shell.h"
 #include "core/web/browser.h"
 #include "core/web/document.h"
 
-using namespace LFL;
-
+namespace LFL {
 DEFINE_string(render_url,   "",           "Url to render");
 DEFINE_string(render_png,   "render.png", "Filename to render to");
 DEFINE_string(layout_tests, "",           "e.g. WebKit/LayoutTests/css2.1/");
 
+Application *app;
 Browser *browser;
 Browser::RenderLog render_log;
 
@@ -79,18 +80,19 @@ int Frame(LFL::Window *W, unsigned clicks, int flag) {
   return 0;
 }
 
-extern "C" void MyAppCreate(int argc, const char* const* argv) {
+extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   FLAGS_enable_video = FLAGS_enable_input = FLAGS_enable_network = 1;
   FLAGS_font_engine = "freetype";
   FLAGS_font = "DejaVuSans.ttf";
   FLAGS_font_family = "sans-serif";
   FLAGS_atlas_font_sizes = "32";
   app = new Application(argc, argv);
-  app->focused = Window::Create();
+  app->focused = CreateWindow(app);
   app->focused->frame_cb = Frame;
   app->focused->caption = "layout_tests";
-  app->focused->width = 800;
-  app->focused->height = 600;
+  app->focused->gl_w = 800;
+  app->focused->gl_h = 600;
+  return app;
 }
 
 extern "C" int MyAppMain() {
@@ -98,11 +100,14 @@ extern "C" int MyAppMain() {
   if (app->Init()) return -1;
 
   app->focused->gd->ClearColor(Color::white);
-  browser = new Browser(new View(app->focused), app->focused->Box());
-  browser->InitLayers(make_unique<Layers>());
+  browser = new Browser(app, app->focused, app, app->fonts.get(), app->net.get(), nullptr, app,
+                        new View(app->focused), app->focused->Box());
+  browser->InitLayers(make_unique<Layers>(app, app));
   browser->render_log = &render_log;
   if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(FLAGS_layout_tests);
   else if (!FLAGS_render_url.empty()) browser->Open(FLAGS_render_url);
 
   return app->Main();
 }
+
+}; // namespace LFL
