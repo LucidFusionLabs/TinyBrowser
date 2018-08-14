@@ -20,8 +20,8 @@
 #include "core/app/gl/view.h"
 #include "core/app/ipc.h"
 #include "core/app/shell.h"
-#include "core/web/browser.h"
-#include "core/web/document.h"
+#include "core/web/browser/browser.h"
+#include "core/web/browser/document.h"
 
 namespace LFL {
 DEFINE_string(render_url,   "",           "Url to render");
@@ -34,23 +34,23 @@ Browser::RenderLog render_log;
 
 struct LayoutTests {
   int count;
-  DirectoryIter files;
+  unique_ptr<DirectoryIter> files;
   struct LayoutTest { string html_fn, png_fn, log_fn, log_expected; } current;
-  LayoutTests(const string &path) : count(0), files(path.c_str(), 0, 0, ".html") {}
+  LayoutTests(FileSystem *fs, const string &path) : count(0), files(fs->ReadDirectory(path.c_str(), 0, 0, ".html")) {}
   string CurrentName() {
     return StringPrintf("LayoutTest-%03d %s render_log(%s) png(%s)", 
                         count, current.html_fn.c_str(), current.log_fn.c_str(), current.png_fn.c_str());
   }
   bool Next() {
     for (;;) {
-      current.html_fn = BlankNull(files.Next());
+      current.html_fn = BlankNull(files->Next());
       if (current.html_fn.empty()) break;
-      current.html_fn = StrCat(files.pathname, current.html_fn);
+      current.html_fn = StrCat(files->pathname, current.html_fn);
       current.log_fn  = current.html_fn.substr(0, current.html_fn.size()-5) + "-expected.txt";
       current.png_fn  = current.html_fn.substr(0, current.html_fn.size()-5) + "-expected.png";
       if (!LocalFile(current.html_fn, "r").Opened()) current.html_fn.clear();
       if (!LocalFile(current.png_fn,  "r").Opened()) current.png_fn .clear();
-      if (!current.log_fn.empty()) current.log_expected = LocalFile::FileContents(current.log_fn);
+      if (!current.log_fn.empty()) current.log_expected = LocalFile(current.log_fn, "r").Contents();
       else if (current.png_fn.empty()) continue;
       count++;
       return true;
@@ -87,7 +87,7 @@ extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   FLAGS_font_family = "sans-serif";
   FLAGS_atlas_font_sizes = "32";
   app = new Application(argc, argv);
-  app->focused = CreateWindow(app);
+  app->focused = app->framework->ConstructWindow(app).release();
   app->focused->frame_cb = Frame;
   app->focused->caption = "layout_tests";
   app->focused->gl_w = 800;
@@ -95,7 +95,7 @@ extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   return app;
 }
 
-extern "C" int MyAppMain() {
+extern "C" int MyAppMain(LFApp*) {
   if (app->Create(__FILE__)) return -1;
   if (app->Init()) return -1;
 
@@ -104,7 +104,7 @@ extern "C" int MyAppMain() {
                         new View(app->focused), app->focused->Box());
   browser->InitLayers(make_unique<Layers>(app, app));
   browser->render_log = &render_log;
-  if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(FLAGS_layout_tests);
+  if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(&app->localfs, FLAGS_layout_tests);
   else if (!FLAGS_render_url.empty()) browser->Open(FLAGS_render_url);
 
   return app->Main();

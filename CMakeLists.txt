@@ -17,8 +17,8 @@ if(NOT LFL_MOBILE)
                  app_null_ssl app_null_js app_null_tu app_null_crashreporting ${BROWSER_TOOLKIT} ${LFL_APP_OS}) 
 endif()
 
-lfl_project(tinybrowser-render-sandbox)
-lfl_add_target(tinybrowser-render-sandbox EXECUTABLE SOURCES render.cpp
+lfl_project(TinyBrowser-render-sandbox)
+lfl_add_target(TinyBrowser-render-sandbox EXECUTABLE SOURCES render.cpp
                LINK_LIBRARIES ${LFL_APP_LIB} app_null_framework app_null_toolkit
                app_null_graphics app_null_audio app_null_camera app_null_matrix app_null_fft
                app_simple_resampler app_simple_loader ${LFL_APP_CONVERT} app_libpng_png
@@ -44,9 +44,9 @@ lfl_add_package(TinyBrowser SOURCES browser.cpp LINK_LIBRARIES ${libs}
                 ${LFL_SOURCE_DIR}/core/app/assets/DejaVuSans*.ttf
                 ${LFL_SOURCE_DIR}/core/app/assets/VeraMoBd.ttf,32,*
                 LIB_FILES ${LFL_APP_LIB_FILES} ${PORTAUDIO_LIB_FILES} ${FFMPEG_LIB_FILES})
+lfl_post_build_start(TinyBrowser)
 if(NOT LFL_MOBILE)
   add_dependencies(TinyBrowser ffmpeg)
 endif()
-lfl_post_build_start(TinyBrowser)
-lfl_post_build_copy_bin(tinybrowser-render-sandbox TinyBrowser)
-
+add_dependencies(TinyBrowser TinyBrowser-render-sandbox) 
+lfl_post_build_copy_bin(TinyBrowser TinyBrowser-render-sandbox)
