@@ -101,7 +101,7 @@ extern "C" int MyAppMain(LFApp*) {
 
   app->focused->gd->ClearColor(Color::white);
   browser = new Browser(app, app->focused, app, app->fonts.get(), app->net.get(), nullptr, app,
-                        new View(app->focused), app->focused->Box());
+                        new View(app->focused, "BrowserView"), app->focused->Box());
   browser->InitLayers(make_unique<Layers>(app, app));
   browser->render_log = &render_log;
   if (!FLAGS_layout_tests.empty()) layout_tests = new LayoutTests(&app->localfs, FLAGS_layout_tests);

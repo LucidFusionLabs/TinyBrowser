@@ -4,25 +4,39 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
-	<key>CFBundleDisplayName</key>
-	<string>Browser</string>
 	<key>CFBundleExecutable</key>
-	<string>browser</string>
+	<string>TinyBrowser</string>
 	<key>CFBundleIconFile</key>
 	<string>icon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.lucidfusionlabs.Browser</string>
+	<string>com.lucidfusionlabs.osx.TinyBrowser</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Browser</string>
+	<string>TinyBrowser</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>1.0</string>
+	<string>1.0.0</string>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+  <key>Fabric</key>
+  <dict>
+    <key>APIKey</key>
+    <string>b8bfc53a14ff223e3cf7df5039c377bdac3ca074</string>
+    <key>Kits</key>
+    <array>
+      <dict>
+        <key>KitInfo</key>
+        <dict/>
+        <key>KitName</key>
+        <string>Crashlytics</string>
+      </dict>
+    </array>
+  </dict>
 </dict>
 </plist>

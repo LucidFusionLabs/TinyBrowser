@@ -30,7 +30,7 @@ if(LFL_SINGLE_THREADED_BROWSER_SUPPORT)
   set(libs ${LFL_APP_LIB} ${BROWSER_FRAMEWORK} ${BROWSER_GRAPHICS}
       ${LFL_APP_AUDIO} ${LFL_APP_CAMERA} app_null_matrix app_null_fft
       app_simple_resampler app_simple_loader ${LFL_APP_CONVERT} app_libpng_png
-      app_libjpeg_jpeg app_giflib_gif app_null_ogg app_libcss_css app_null_ssl
+      app_libjpeg_jpeg app_giflib_gif app_null_ogg app_libcss_css app_openssl_ssl
       app_null_ttf app_v8_js app_null_tu app_null_crashreporting ${BROWSER_TOOLKIT} ${LFL_APP_OS})
 else()
   set(libs ${LFL_APP_LIB} ${BROWSER_FRAMEWORK} ${BROWSER_GRAPHICS}
@@ -46,7 +46,7 @@ lfl_add_package(TinyBrowser SOURCES browser.cpp LINK_LIBRARIES ${libs}
                 LIB_FILES ${LFL_APP_LIB_FILES} ${PORTAUDIO_LIB_FILES} ${FFMPEG_LIB_FILES})
 lfl_post_build_start(TinyBrowser)
 if(NOT LFL_MOBILE)
-  add_dependencies(TinyBrowser ffmpeg)
+  add_dependencies(TinyBrowser v8 ffmpeg)
 endif()
 add_dependencies(TinyBrowser TinyBrowser-render-sandbox) 
 lfl_post_build_copy_bin(TinyBrowser TinyBrowser-render-sandbox)

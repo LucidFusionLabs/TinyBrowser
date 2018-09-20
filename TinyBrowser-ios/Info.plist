@@ -3,24 +3,24 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>English</string>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>TinyBrowser</string>
 	<key>CFBundleExecutable</key>
-	<string>browser</string>
-	<key>CFBundleIconFile</key>
-	<string>icon</string>
+	<string>TinyBrowser</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.lucidfusionlabs.Browser</string>
+	<string>com.lucidfusionlabs.TinyBrowser</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Browser</string>
+	<string>TinyBrowser</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
-  <key>NSPrincipalClass</key>
-  <string>NSApplication</string>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
 </dict>
 </plist>

@@ -20,8 +20,8 @@
 #include "core/app/gl/view.h"
 #include "core/app/ipc.h"
 #include "core/app/shell.h"
-#include "core/web/browser.h"
-#include "core/web/document.h"
+#include "core/web/browser/browser.h"
+#include "core/web/browser/document.h"
 
 namespace LFL {
 DEFINE_string(url, "http://news.google.com/", "Url to open");
@@ -55,7 +55,7 @@ struct MyBrowserWindow : public View {
   BrowserController *controller=0;
   Browser::RenderLog render_log;
 
-  MyBrowserWindow(Window *W) : View(W),
+  MyBrowserWindow(Window *W) : View(W, "MyBrowserView"),
     menu_atlas(app->fonts->Get(W->gl_h, "MenuAtlas", "", 0, Color::white, Color::clear, 0)),
     back   (this, &menu_atlas->FindGlyph(6)->tex, "", MouseController::CB([&](){ browser->BackButton(); })),
     forward(this, &menu_atlas->FindGlyph(7)->tex, "", MouseController::CB([&](){ browser->ForwardButton(); })),
@@ -97,7 +97,7 @@ struct MyBrowserWindow : public View {
   }
 
   void InitLayout() {
-    box = win = root->Box();
+    box = win = root->ViewBox();
     win.SetPosition(point(0, -win.h));
     topbar = win;
     topbar.h = 16;
@@ -105,12 +105,12 @@ struct MyBrowserWindow : public View {
     win.h = max(0, win.h - topbar.h);
   }
 
-  void Layout() {
+  View *Layout(Flow *flow_in=nullptr) override {
     ResetView();
     InitLayout();
     addressbar = topbar;
     MinusPlus(&addressbar.w, &addressbar.x, 16*3 + 20);
-    child_box.PushBack(topbar, Drawable::Attr(NullPointer<Font>(), &Color::grey70), Singleton<BoxFilled>::Get());
+    child_box.PushBack(topbar, Drawable::Attr(NullPointer<Font>(), &Color::grey70), Singleton<BoxFilled>::Set());
 
     Flow flow(&box, 0, &child_box);
     flow.cur_attr.font = menu_atlas;
@@ -119,20 +119,21 @@ struct MyBrowserWindow : public View {
     refresh.Layout(&flow, 0, point(16, 16));
     if (lfl_browser) lfl_browser->Layout(win);
     refresh.AddClickBox(addressbar, MouseController::CB([&](){ address_box.Activate(); }));
+    return this;
   }
 
-  void Draw() {
-    View::Draw();
-    browser->Draw(box);
-    address_box.Draw(addressbar + box.TopLeft());
+  void Draw(const point &p) override {
+    View::Draw(p);
+    browser->Draw(box + p);
+    address_box.Draw(addressbar + p + box.TopLeft());
     if (lfl_browser) {
       lfl_browser->UpdateScrollbar();
-      if (lfl_browser->doc.js_console) lfl_browser->doc.js_console->Draw();
+      if (lfl_browser->doc.js_console) lfl_browser->doc.js_console->Draw(p + box.TopLeft());
     }
   }
 
   int Frame(LFL::Window *W, unsigned clicks, int flag) {
-    Draw();
+    Draw(W->Box().TopLeft());
     W->DrawDialogs();
     if (FLAGS_render_log && !app->render_process) { printf("Render log: %s\n", render_log.data.c_str()); render_log.Clear(); }
     return 0;
@@ -166,7 +167,7 @@ using namespace LFL;
 extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   FLAGS_enable_video = FLAGS_enable_input = FLAGS_max_rlimit_open_files = 1;
   app = new Application(argc, argv);
-  app->focused = CreateWindow(app);
+  app->focused = app->framework->ConstructWindow(app).release();
   app->window_start_cb = MyWindowStartCB;
   app->window_init_cb = MyWindowInitCB;
   app->window_init_cb(app->focused);
@@ -174,7 +175,7 @@ extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   return app;
 }
 
-extern "C" int MyAppMain() {
+extern "C" int MyAppMain(LFApp*) {
   if (app->Create(__FILE__)) return -1;
   if (FLAGS_font_engine == "freetype") { DejaVuSansFreetype::SetDefault(); DejaVuSansFreetype::Load(app->fonts.get()); }
   if (app->Init()) return -1;
@@ -188,7 +189,7 @@ extern "C" int MyAppMain() {
     if (FLAGS_render_log) { arg.push_back("-render_log"); arg.push_back("1"); }
     app->log_pid = true;
     app->render_process = make_unique<ProcessAPIClient>(app, app, app->net.get(), app, app->fonts.get());
-    CHECK(app->render_process->StartServerProcess(StrCat(app->bindir, "tinybrowser-render-sandbox", LocalFile::ExecutableSuffix), arg));
+    CHECK(app->render_process->StartServerProcess(StrCat(app->bindir, "TinyBrowser-render-sandbox", app->localfs.executable_suffix), arg));
     CHECK(app->CreateNetworkThread(false, false));
     app->net->select_time = Seconds(1).count();
   } else

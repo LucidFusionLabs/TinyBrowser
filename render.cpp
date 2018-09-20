@@ -19,8 +19,8 @@
 #include "core/app/app.h"
 #include "core/app/gl/view.h"
 #include "core/app/ipc.h"
-#include "core/web/browser.h"
-#include "core/web/document.h"
+#include "core/web/browser/browser.h"
+#include "core/web/browser/document.h"
 
 #ifdef __APPLE__
 #include <sandbox.h>
@@ -32,7 +32,7 @@ DEFINE_bool(render_log, false, "Output render log");
 
 extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   app = new Application(argc, argv);
-  app->focused = CreateWindow(app);
+  app->focused = app->framework->ConstructWindow(app).release();
   app->name = "LBrowserRenderSandbox";
   app->log_pid = true;
   app->fonts->DefaultFontEngine()->SetDefault();
@@ -42,7 +42,7 @@ extern "C" LFApp *MyAppCreate(int argc, const char* const* argv) {
   return app;
 }
 
-extern "C" int MyAppMain() {
+extern "C" int MyAppMain(LFApp*) {
   if (app->Create(__FILE__)) return -1;
 
   int optind = Singleton<FlagMap>::Get()->optind;
@@ -50,7 +50,7 @@ extern "C" int MyAppMain() {
 
   app->input = make_unique<Input>(app, app, app);
   app->net = make_unique<SocketServices>(app, app);
-  app->focused->gd = CreateGraphicsDevice(app->focused, app->shaders.get(),2).release();
+  app->focused->gd = GraphicsDevice::Create(app->focused, app->shaders.get()).release();
   (app->asset_loader = make_unique<AssetLoader>(app))->Init();
 
   const string socket_name = StrCat(app->argv[optind]);
@@ -68,7 +68,10 @@ extern "C" int MyAppMain() {
 
 #ifdef __APPLE__
   char *sandbox_error=0;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   sandbox_init(kSBXProfilePureComputation, SANDBOX_NAMED, &sandbox_error);
+#pragma clang diagnostic pop
   INFO("render: sandbox init: ", sandbox_error ? sandbox_error : "success");
 #endif
 
